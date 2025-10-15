@@ -153,7 +153,7 @@ async def startup_event():
 
     def connect_kafka():
         # Load Avro schema
-        schema_path = os.path.join(BASE_DIR, '..', 'common', 'schemas', 'log_schema.avsc')
+        schema_path = os.path.join(BASE_DIR, '..', '..', 'common', 'schemas', 'log_schema.avsc')
         with open(schema_path, 'r') as f:
             value_schema = f.read()
 

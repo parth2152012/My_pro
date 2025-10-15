@@ -21,6 +21,7 @@ services:
       - FRONTEND_ORIGIN=http://localhost:3000,https://ddj1ndsf-3000.inc1.devtunnels.ms
     volumes:
       - ./api:/app
+      - ./common:/common
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 30s
