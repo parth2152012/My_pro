@@ -1,0 +1,8 @@
+aiokafka
+elasticsearch[async]==8.13.0
+redis
+numpy
+scikit-learn
+geoip2
+joblib
+confluent-kafka[avro]

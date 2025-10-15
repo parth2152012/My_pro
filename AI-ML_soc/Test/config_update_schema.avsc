@@ -1,0 +1,9 @@
+{
+    "namespace": "com.soc.ai",
+    "type": "record",
+    "name": "ConfigUpdate",
+    "fields": [
+        {"name": "action", "type": "string"},
+        {"name": "ip", "type": ["null", "string"], "default": null}
+    ]
+}

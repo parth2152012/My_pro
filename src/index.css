@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide scrollbar but still allow scroll */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+.comos-color{
+  color: #5300D0 !important;
+}
+.comos-bg{
+  background-color: #5300D0;
+  border: none;
+}
+.comos-border{
+  border-color: #5300D0;
+}
+.comos-bg-gradient{
+  background-image: linear-gradient(90deg, #6e778100 0%, #17191B 50%, #6e778100 100%);
+}
+.b-footer-gradient{
+  background: #5300D0;
+  background: -webkit-linear-gradient(180deg, rgba(83, 0, 208, 0.5) 0%, rgba(42, 0, 106, 0.05) 100%);
+  background: -moz-linear-gradient(180deg, rgba(83, 0, 208, 0.5) 0%, rgba(42, 0, 106, 0.05) 100%);
+  background: linear-gradient(180deg, rgba(83, 0, 208, 0.5) 0%, rgba(42, 0, 106, 0.05) 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr="#5300D0", endColorstr="#2A006A", GradientType=0);
+}
+.work-bg{
+  background: #2A006A;
+background: linear-gradient(150deg,rgba(42, 0, 106, 1) 0%, rgba(66, 0, 166, 1) 70%, rgba(83, 0, 208, 1) 100%);
+}
+.work-bg-black{
+  background: #848484;
+  background: linear-gradient(132deg, rgba(132, 132, 132, 1) 0%, rgba(30, 30, 30, 1) 56%);
+}
+.footer-title{
+  color: #6e6e6e;
+}

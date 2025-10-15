@@ -1,0 +1,12 @@
+{
+    "namespace": "com.soc.ai",
+    "type": "record",
+    "name": "StructuredLog",
+    "fields": [
+        {"name": "message", "type": "string"},
+        {"name": "user_id", "type": ["null", "string"], "default": null},
+        {"name": "event_type", "type": ["null", "string"], "default": null},
+        {"name": "source_ip", "type": ["null", "string"], "default": null},
+        {"name": "timestamp", "type": "long"}
+    ]
+}
