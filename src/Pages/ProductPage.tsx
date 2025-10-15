@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export const ProductPage: React.FC = () => {
   return (
@@ -12,20 +13,32 @@ export const ProductPage: React.FC = () => {
         {/* Hero Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
               <span className="comos-color">COMOS</span> Product
-            </h1>
-            <p className="text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto mb-8">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto mb-8">
               AI-powered Security Operations Center designed for modern businesses
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="btn comos-bg px-8 py-3 rounded-xl text-white hover:scale-105 transition-transform">
                 Start Free Trial
               </button>
               <button className="btn btn-outline px-8 py-3 rounded-xl hover:scale-105 transition-transform">
                 Watch Demo
               </button>
-            </div>
+            </motion.div>
           </div>
         </section>
 
@@ -36,30 +49,61 @@ export const ProductPage: React.FC = () => {
               Powerful Features for Modern Security
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              {/* Feature Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">AI-Driven Monitoring</h3>
                 <p className="text-gray-300">Continuous threat detection using advanced AI algorithms that learn from your environment.</p>
-              </div>
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">Instant Alerts</h3>
                 <p className="text-gray-300">Real-time notifications for critical security events, ensuring immediate response capabilities.</p>
-              </div>
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">Cloud Integration</h3>
                 <p className="text-gray-300">Seamless integration with AWS, Azure, GCP, and other cloud platforms for comprehensive coverage.</p>
-              </div>
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.0 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">Compliance Automation</h3>
                 <p className="text-gray-300">Automated compliance checks and reporting for industry standards and regulations.</p>
-              </div>
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">Scalable Architecture</h3>
                 <p className="text-gray-300">Built to grow with your business, from startups to enterprise-level deployments.</p>
-              </div>
-              <div className="bg-base-100 p-6 rounded-2xl shadow-lg">
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-base-100 p-6 rounded-2xl shadow-lg">
                 <h3 className="text-xl font-semibold mb-4 text-white">Expert Support</h3>
                 <p className="text-gray-300">24/7 access to security experts and comprehensive documentation.</p>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
@@ -172,7 +216,7 @@ export const ProductPage: React.FC = () => {
                   <li>• Dedicated support</li>
                   <li>• Advanced features as required</li>
                 </ul>
-                <Link to="/contactPage" className="btn comos-bg w-full px-4 py-2 rounded-xl text-white hover:scale-105 transition-transform">
+                <Link to="/contact" className="btn comos-bg w-full px-4 py-2 rounded-xl text-white hover:scale-105 transition-transform">
                   Contact Sales
                 </Link>
               </div>
@@ -234,4 +278,4 @@ export const ProductPage: React.FC = () => {
       </div>
     </div>
   );
-};
+}

@@ -1,9 +1,9 @@
 import React from "react";
-import { Work } from "../Components/HowWork.tsx";
 import starBg from "../assets/star_bg.png";
 import smart from "../assets/smart.png";
 import ndc from "../assets/ndc.png";
 import idc from "../assets/idc.jpg";
+import { motion } from "framer-motion";
 
 
 export const About: React.FC = () => {
@@ -28,52 +28,63 @@ export const About: React.FC = () => {
             {/* Features */}
             <div className="flex flex-col gap-12 pt-16 w-full max-w-7xl">
                 {/* Block 1: Image Left, Card Right */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                    <img
+                <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.8 }}
+                    className="flex flex-col md:flex-row justify-between items-center gap-8">
+                    <motion.img
+                        whileHover={{ scale: 1.05 }}
                         src={smart}
                         alt="Smarter SOC"
                         className="h-auto w-full md:w-1/2 rounded-2xl"
                     />
-                    <div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
+                    <motion.div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
                         Smarter, faster, cheaper than traditional SOC.
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
 
                 {/* Block 2: Image Left, Text Right */}
-                <div className="flex flex-col md:flex-row-reverse justify-between items-center gap-8">
-                    <img
+                <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.8 }}
+                    className="flex flex-col md:flex-row-reverse justify-between items-center gap-8">
+                    <motion.img
+                        whileHover={{ scale: 1.05 }}
                         src={ndc}
                         alt="AI monitoring"
                         className="h-auto w-full md:w-1/2 rounded-2xl"
                     />
-                    <div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
+                    <motion.div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
                         Bringing SOC to startups with AI-driven monitoring, instant alerts,
                         and affordable pricing.
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
 
                 {/* Block 3: Image Left, Card Right */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-                    <img
+                <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, amount: 0.3 }}
+                    transition={{ duration: 0.8 }}
+                    className="flex flex-col md:flex-row justify-between items-center gap-8">
+                    <motion.img
+                        whileHover={{ scale: 1.05 }}
                         src={idc}
                         alt="Accessible security"
                         className="h-auto w-full md:w-1/2 rounded-2xl"
                     />
-                    <div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
+                    <motion.div className="comos-bg flex flex-col justify-center text-center text-2xl sm:text-3xl font-semibold h-auto md:h-[400px] w-full md:w-1/2 text-white p-8 rounded-2xl">
                         Making AI-powered security accessible from day one.
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </div>
 
             {/* How It Works Section */}
-            <section className="mt-24 w-full max-w-6xl">
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-10">
-                    How <span className="comos-color">COMOS</span> Works
-                </h2>
-                <div className="flex flex-col items-center gap-8 mb-20">
-                    <Work />
-                </div>
-            </section>
+            {/* The "How It Works" section was removed as the 'Work' component is not defined. You can re-add this section once the component is created and imported correctly. */}
         </section>
     );
 };

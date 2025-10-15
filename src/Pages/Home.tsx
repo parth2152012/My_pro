@@ -1,6 +1,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import bgImg from "../assets/6-BG-Ice-Cube-Data-Centre.png"; // adjust path
+import { motion } from "framer-motion";
 
 export const Home = () => {
     const words = useMemo(() => ["Center", "Platform", "Application"], []);
@@ -43,7 +44,10 @@ export const Home = () => {
             {/* Purple Blob Background */}
             <div className="absolute top-20 left-10 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
             <div className="absolute bottom-20 right-10 w-80 h-80 bg-purple-800 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
-                <h1
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
                     className="
         font-bold font-mono text-white pt-24 mx-auto sm:mx-0
         text-4xl sm:text-5xl md:text-6xl lg:text-8xl
@@ -61,8 +65,12 @@ export const Home = () => {
                             {displayed}
                         </span>
                     </span>
-                </h1>
-                <div className="flex flex-col sm:flex-row gap-4 mt-8 justify-center sm:justify-start items-center">
+                </motion.h1>
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="flex flex-col sm:flex-row gap-4 mt-8 justify-center sm:justify-start items-center">
                     <input
                         type="email"
                         placeholder="Enter your email address"
@@ -74,7 +82,7 @@ export const Home = () => {
                     >
                         Join Waitlist
                     </a>
-                </div>
+                </motion.div>
             </section>
         </>
 
