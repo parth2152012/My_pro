@@ -161,7 +161,25 @@
     </div>
     <h1>AI/ML SOC Dashboard</h1>
 
-    <div id="status-container" class="container">
+    <!-- Login Form -->
+    <div id="login-container" class="container">
+        <h2>Login</h2>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required style="display: block; margin-bottom: 10px; width: 200px;">
+            <input type="password" id="password" placeholder="Password" required style="display: block; margin-bottom: 10px; width: 200px;">
+            <button type="submit" style="display: block;">Login</button>
+        </form>
+        <div id="login-error" style="color: red; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Main Dashboard (hidden until logged in) -->
+    <div id="dashboard-container" style="display: none;">
+        <div id="user-info" style="text-align: right; margin-bottom: 10px;">
+            <span id="current-user"></span>
+            <button onclick="logout()">Logout</button>
+        </div>
+
+        <div id="status-container" class="container">
         <div id="status-panel">
             <div id="status-light" class="status-light">--</div>
             <div class="status-metrics">

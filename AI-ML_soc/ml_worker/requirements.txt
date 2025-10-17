@@ -6,3 +6,9 @@ scikit-learn
 geoip2
 joblib
 confluent-kafka[avro]
+pandas
+shap
+transformers
+torch
+pytest
+pytest-asyncio

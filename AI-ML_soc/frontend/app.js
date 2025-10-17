@@ -6,6 +6,76 @@ const LOCAL_API_URL = "http://localhost:8000";
 // Otherwise (e.g., on localhost), use the local API URL.
 const API_BASE_URL = window.location.hostname.includes('devtunnels.ms') ? PUBLIC_API_URL : LOCAL_API_URL;
 
+// Authentication state
+let accessToken = localStorage.getItem('accessToken');
+
+// Function to get auth headers if token exists
+function getAuthHeaders() {
+    return accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+}
+
+// Login function
+async function login(username, password) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ username, password })
+        });
+        if (!response.ok) throw new Error('Invalid credentials');
+        const data = await response.json();
+        accessToken = data.access_token;
+        localStorage.setItem('accessToken', accessToken);
+        showDashboard();
+        initializeDashboard();
+        fetchInitialData(); // Fetch data only after successful login
+    } catch (error) {
+        document.getElementById('login-error').textContent = error.message;
+    }
+}
+
+// Logout function
+function logout() {
+    accessToken = null;
+    localStorage.removeItem('accessToken');
+    showLogin();
+}
+
+// Show login form
+function showLogin() {
+    document.getElementById('login-container').style.display = 'block';
+    document.getElementById('dashboard-container').style.display = 'none';
+}
+
+// Show dashboard
+function showDashboard() {
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('dashboard-container').style.display = 'block';
+    // Fetch user info
+    fetch(`${API_BASE_URL}/users/me`, { headers: getAuthHeaders() })
+        .then(res => res.json())
+        .then(user => {
+            document.getElementById('current-user').textContent = `Logged in as: ${user.username}`;
+        })
+        .catch(() => logout()); // If user fetch fails, logout
+}
+
+// Check if already logged in on page load
+if (accessToken) {
+    showDashboard();
+    fetchInitialData(); // Fetch data if already logged in
+} else {
+    showLogin();
+}
+
+// Handle login form submission
+document.getElementById('login-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    login(username, password);
+});
+
 
 const alertsContainer = document.getElementById('alerts-container');
 const successContainer = document.getElementById('success-container');
@@ -13,7 +83,7 @@ const successContainer = document.getElementById('success-container');
 async function fetchStatusAndStats() {
     // Fetch system status (traffic light)
     try {
-        const statusRes = await fetch(`${API_BASE_URL}/status`);
+        const statusRes = await fetch(`${API_BASE_URL}/status`, { headers: getAuthHeaders() });
         if (!statusRes.ok) throw new Error(`API error: ${statusRes.status}`);
         const statusData = await statusRes.json();
         const statusLight = document.getElementById('status-light');
@@ -31,7 +101,7 @@ async function fetchStatusAndStats() {
 
     // Fetch key metrics
     try {
-        const statsRes = await fetch(`${API_BASE_URL}/stats`);
+        const statsRes = await fetch(`${API_BASE_URL}/stats`, { headers: getAuthHeaders() });
         if (!statsRes.ok) throw new Error(`API error: ${statsRes.status}`);
         const statsData = await statsRes.json();
         document.getElementById('attempts-blocked').textContent = statsData.attempts_blocked;
@@ -45,24 +115,26 @@ async function fetchStatusAndStats() {
 async function fetchData() {
     // Fetch failed attempts (anomalies)
     fetchAndDisplay(
-        `${API_BASE_URL}/alerts?is_anomaly=true`, 
-        alertsContainer, 
-        'alert', 
-        'No new alerts found.'
+        `${API_BASE_URL}/alerts?is_anomaly=true`,
+        alertsContainer,
+        'alert',
+        'No new alerts found.',
+        { headers: getAuthHeaders() }
     );
 
     // Fetch successful attempts
     fetchAndDisplay(
-        `${API_BASE_URL}/alerts?is_anomaly=false`, 
-        successContainer, 
-        'log', 
-        'No successful attempts found.'
+        `${API_BASE_URL}/alerts?is_anomaly=false`,
+        successContainer,
+        'log',
+        'No successful attempts found.',
+        { headers: getAuthHeaders() }
     );
 }
 
-async function fetchAndDisplay(url, container, itemClass, emptyMessage) {
+async function fetchAndDisplay(url, container, itemClass, emptyMessage, options = {}) {
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, options);
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
         const items = await response.json();
 
@@ -107,7 +179,7 @@ async function updateStatus(alertId, newStatus) {
     try {
         const response = await fetch(`${API_BASE_URL}/alerts/${alertId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ status: newStatus })
         });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
@@ -123,7 +195,7 @@ async function resolveAllAlerts() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/alerts/resolve-all`, { method: 'POST' });
+        const response = await fetch(`${API_BASE_URL}/alerts/resolve-all`, { method: 'POST', headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
         const result = await response.json();
         alert(`${result.updated_count} alerts have been resolved.`);
@@ -137,7 +209,7 @@ async function resolveAllAlerts() {
 async function fetchIpList(listType) {
     const container = document.getElementById(`${listType}-container`);
     try {
-        const response = await fetch(`${API_BASE_URL}/${listType}`);
+        const response = await fetch(`${API_BASE_URL}/${listType}`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
         const data = await response.json();
         const ips = data[`${listType}ed_ips`];
@@ -183,7 +255,7 @@ async function addIpToList(listType, ip) {
     try {
         const response = await fetch(`${API_BASE_URL}/${listType}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ ip: ip })
         });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
@@ -198,7 +270,7 @@ async function removeIpFromList(listType, ip) {
     if (!confirm(`Are you sure you want to remove ${ip} from the ${listType}?`)) return;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/${listType}/${ip}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE_URL}/${listType}/${ip}`, { method: 'DELETE', headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
         fetchIpList(listType); // Refresh the list
     } catch (error) {
@@ -224,7 +296,7 @@ async function updateWebhookUrl() {
     try {
         const response = await fetch(`${API_BASE_URL}/config/webhook`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
             body: JSON.stringify({ type: type, url: url })
         });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
@@ -237,9 +309,9 @@ async function updateWebhookUrl() {
 
 async function fetchWebhookConfig() {
     try {
-        const response = await fetch(`${API_BASE_URL}/config/webhook`);
+        const response = await fetch(`${API_BASE_URL}/config/webhook`, { headers: getAuthHeaders() });
         if (!response.ok) throw new Error(`API responded with status ${response.status}`);
-        
+
         // The endpoint can return an empty body with 200 OK if no config is set
         const text = await response.text();
         if (!text) return; // Nothing to do if no config is saved
@@ -254,18 +326,49 @@ async function fetchWebhookConfig() {
     }
 }
 
-function initializeDashboard() {
+function fetchInitialData() {
     // Set intervals for polling
     setInterval(fetchStatusAndStats, 5000);
     setInterval(fetchData, 5000);
 
     // Initial fetch
-    fetchWebhookConfig();
     fetchStatusAndStats();
     fetchData();
+}
+
+function initializeDashboard() {
+    fetchWebhookConfig();
     fetchIpList('whitelist');
     fetchIpList('blocklist');
 }
 
 // Run the initialization function when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+// Handle PDF report download
+document.getElementById('download-report-btn').addEventListener('click', async function() {
+    if (!accessToken) {
+        alert('You must be logged in to download reports.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/reports/incidents`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error(`API responded with status ${response.status}`);
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'incident_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+    } catch (error) {
+        console.error('Failed to download report:', error);
+        alert('Failed to download report. See console for details.');
+    }
+});

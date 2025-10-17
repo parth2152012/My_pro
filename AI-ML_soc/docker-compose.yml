@@ -1,18 +1,9 @@
-version: '3.8'
-
 services:
 
   api:
     build: ./api
     ports:
       - "8000:8000"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-      redis:
-        condition: service_healthy
     environment:
       - KAFKA_BROKER=kafka:9093
       - ELASTICSEARCH_URL=http://elasticsearch:9200
@@ -73,12 +64,46 @@ services:
     volumes:
       - ./alerter:/app
 
+  vulnerable_api:
+    build: ./vulnerable_api
+    ports:
+      - "8001:8001"
+    depends_on:
+      user_db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=user_db
+      - DB_NAME=userdb
+      - DB_USER=user
+      - DB_PASS=password
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  user_db:
+    image: postgres:13-alpine
+    environment:
+      - POSTGRES_DB=userdb
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d userdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.7.0
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ports:
       - "9200:9200"
     healthcheck:
@@ -88,6 +113,11 @@ services:
       retries: 5
     volumes:
       - es_data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: '0.5'
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.7.0
@@ -140,3 +170,4 @@ services:
 
 volumes:
   es_data:
+  user_db_data:

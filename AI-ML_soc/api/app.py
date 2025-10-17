@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Form
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from confluent_kafka.avro import AvroProducer
 from confluent_kafka import Producer as JsonProducer
 from elasticsearch import AsyncElasticsearch
@@ -6,13 +7,13 @@ import redis.asyncio as redis
 import json
 import os
 import asyncio, time
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, EmailStr
 from datetime import datetime
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse, StreamingResponse
+from starlette.responses import JSONResponse, StreamingResponse, HTMLResponse
 from typing import List, Optional, Dict
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
@@ -20,6 +21,17 @@ import io
 import base64
 import matplotlib.pyplot as plt
 import matplotlib
+from auth import authenticate_user, create_access_token, get_current_active_user, User, Token, fake_users_db
+from fastapi import WebSocket, WebSocketDisconnect
+import logging
+
+# --- Logger Setup ---
+logger = logging.getLogger("soc_api")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 # --- Configuration ---
 KAFKA_BROKER = os.environ.get("KAFKA_BROKER", "localhost:9092")
@@ -91,10 +103,17 @@ app.add_middleware(
 async def block_ip_middleware(request: Request, call_next):
     """Middleware to block requests from IPs in the Redis blocklist."""
     client_ip = request.client.host
-    if redis_client and await redis_client.sismember(BLOCKLIST_REDIS_KEY, client_ip):
+    print(f"API: Request from IP: {client_ip}, Path: {request.url.path}")
+    # Allow localhost IPs (common in development)
+    localhost_ips = {'127.0.0.1', 'localhost', '::1'}
+    if client_ip in localhost_ips:
+        response = await call_next(request)
+        return response
+    # Allow access to /token and /health even if IP is blocked, to enable login and health checks
+    if request.url.path not in ["/token", "/health"] and redis_client and await redis_client.sismember(BLOCKLIST_REDIS_KEY, client_ip):
         print(f"API: Denying request from blocked IP: {client_ip}")
         return JSONResponse(status_code=403, content={"detail": f"IP address {client_ip} is blocked."})
-    
+
     response = await call_next(request)
     return response
 
@@ -143,8 +162,10 @@ async def connect_with_retry(connect_func, service_name, max_retries=15, delay=5
         except Exception as e:
             print(f"API: Failed to connect to {service_name}: {e}. Retrying in {delay}s... ({i+1}/{max_retries})")
             await asyncio.sleep(delay)
-    print(f"API: Could not connect to {service_name} after {max_retries} retries. Exiting.")
-    exit(1)
+    # In dev mode, we don't want to exit if a service is not available.
+    # The application will start, but endpoints depending on the service will fail gracefully.
+    print(f"API: Could not connect to {service_name} after {max_retries} retries. The service will be unavailable.")
+    return None
 
 @app.on_event("startup")
 async def startup_event():
@@ -187,7 +208,8 @@ async def startup_event():
     redis_client = await connect_with_retry(connect_redis, "Redis")
 
     # Ensure the index exists after connecting to Elasticsearch
-    await ensure_es_index_exists(es_client, ES_INDEX_NAME)
+    if es_client:
+        await ensure_es_index_exists(es_client, ES_INDEX_NAME)
 
     print("API: Connections established successfully.")
 
@@ -245,6 +267,55 @@ class StatusResponse(BaseModel):
     status: str # "ALL_GOOD", "SUSPICIOUS", "INCIDENT"
     details: Dict = {}
 
+# --- WebSocket Manager for Real-time Updates ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                self.disconnect(connection)
+
+manager = ConnectionManager()
+
+# --- Authentication Endpoints ---
+@app.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.get("/users/me", response_model=User)
+async def read_users_me(current_user: User = Depends(get_current_active_user)):
+    return current_user
+
+# --- WebSocket Endpoint for Real-time Alerts ---
+@app.websocket("/ws/alerts")
+async def websocket_alerts(websocket: WebSocket, current_user: User = Depends(get_current_active_user)):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Keep connection alive, broadcast will happen from other endpoints
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
 # --- API Endpoints ---
 @app.get("/")
 async def read_root():
@@ -254,9 +325,17 @@ async def read_root():
 async def health_check():
     return {"status": "ok"}
 
+@app.get("/welcome")
+async def welcome(request: Request, current_user: User = Depends(get_current_active_user)):
+    """
+    Returns a welcome message and logs the request metadata.
+    """
+    logger.info(f"Request: {request.method} {request.url.path}")
+    return {"message": "Welcome to the SOC API Service!"}
+
 @app.post("/logs")
 @limiter.limit("100/minute")
-async def submit_log(log: StructuredLog, request: Request, producer: AvroProducer = Depends(get_avro_kafka_producer)):
+async def submit_log(log: StructuredLog, request: Request, producer: AvroProducer = Depends(get_avro_kafka_producer), current_user: User = Depends(get_current_active_user)):
     try:
         # The AvroProducer's produce method is not async
         producer.produce(topic=KAFKA_LOGS_TOPIC, value=log.dict())
@@ -265,7 +344,7 @@ async def submit_log(log: StructuredLog, request: Request, producer: AvroProduce
         raise HTTPException(status_code=500, detail=f"Failed to send log to Kafka: {e}")
 
 @app.get("/alerts")
-async def get_alerts(is_anomaly: bool = True, es: AsyncElasticsearch = Depends(get_es_client)):
+async def get_alerts(is_anomaly: bool = True, es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     try:
         res = await es.search(
             index=ES_INDEX_NAME,
@@ -279,7 +358,7 @@ async def get_alerts(is_anomaly: bool = True, es: AsyncElasticsearch = Depends(g
         raise HTTPException(status_code=500, detail=f"Failed to query Elasticsearch: {e}")
 
 @app.patch("/alerts/{alert_id}")
-async def update_alert_status(alert_id: str, update: AlertStatusUpdate, es: AsyncElasticsearch = Depends(get_es_client)):
+async def update_alert_status(alert_id: str, update: AlertStatusUpdate, es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     try:
         await es.update(
             index=ES_INDEX_NAME,
@@ -291,7 +370,7 @@ async def update_alert_status(alert_id: str, update: AlertStatusUpdate, es: Asyn
         raise HTTPException(status_code=500, detail=f"Failed to update alert status: {e}")
 
 @app.post("/alerts/resolve-all", status_code=200)
-async def resolve_all_alerts(es: AsyncElasticsearch = Depends(get_es_client)):
+async def resolve_all_alerts(es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     """Resolves all 'new' alerts by updating their status to 'resolved'."""
     try:
         query = {
@@ -314,38 +393,38 @@ async def resolve_all_alerts(es: AsyncElasticsearch = Depends(get_es_client)):
         raise HTTPException(status_code=500, detail=f"Failed to resolve all alerts: {e}")
 
 @app.get("/whitelist", response_model=WhitelistResponse)
-async def get_whitelist():
+async def get_whitelist(current_user: User = Depends(get_current_active_user)):
     return {"whitelisted_ips": sorted(list(whitelisted_ips))}
 
 @app.post("/whitelist", status_code=201)
-async def add_to_whitelist(item: WhitelistIP, producer: JsonProducer = Depends(get_json_kafka_producer)):
+async def add_to_whitelist(item: WhitelistIP, producer: JsonProducer = Depends(get_json_kafka_producer), current_user: User = Depends(get_current_active_user)):
     if item.ip in whitelisted_ips:
         return {"status": "IP already in whitelist"}
     
     whitelisted_ips.add(item.ip)
     try:
-        producer.produce(CONFIG_UPDATES_TOPIC, json.dumps({"action": "add", "ip": item.ip}).encode('utf-8'))
+        await asyncio.to_thread(producer.produce, CONFIG_UPDATES_TOPIC, json.dumps({"action": "add", "ip": item.ip}).encode('utf-8'))
         return {"status": "IP added to whitelist"}
     except Exception as e:
         whitelisted_ips.remove(item.ip) # Rollback change on failure
         raise HTTPException(status_code=500, detail=f"Failed to update whitelist: {e}")
 
 @app.delete("/whitelist/{ip}", status_code=200)
-async def remove_from_whitelist(ip: str, producer: JsonProducer = Depends(get_json_kafka_producer)):
+async def remove_from_whitelist(ip: str, producer: JsonProducer = Depends(get_json_kafka_producer), current_user: User = Depends(get_current_active_user)):
     if ip not in whitelisted_ips:
         raise HTTPException(status_code=404, detail="IP not found in whitelist")
     
     whitelisted_ips.remove(ip)
-    producer.produce(CONFIG_UPDATES_TOPIC, json.dumps({"action": "remove", "ip": ip}).encode('utf-8'))
+    await asyncio.to_thread(producer.produce, CONFIG_UPDATES_TOPIC, json.dumps({"action": "remove", "ip": ip}).encode('utf-8'))
     return {"status": "IP removed from whitelist"}
 
 @app.get("/blocklist", response_model=BlocklistResponse)
-async def get_blocklist(redis: redis.Redis = Depends(get_redis_client)):
+async def get_blocklist(redis: redis.Redis = Depends(get_redis_client), current_user: User = Depends(get_current_active_user)):
     blocked_ips = await redis.smembers(BLOCKLIST_REDIS_KEY)
     return {"blocklisted_ips": sorted(list(blocked_ips))}
 
 @app.post("/blocklist", status_code=201)
-async def add_to_blocklist(item: BlocklistItem, redis: redis.Redis = Depends(get_redis_client)):
+async def add_to_blocklist(item: BlocklistItem, redis: redis.Redis = Depends(get_redis_client), current_user: User = Depends(get_current_active_user)):
     added_count = await redis.sadd(BLOCKLIST_REDIS_KEY, item.ip)
     if added_count == 0:
         return {"status": "IP already in blocklist"}
@@ -353,7 +432,7 @@ async def add_to_blocklist(item: BlocklistItem, redis: redis.Redis = Depends(get
     return {"status": "IP added to blocklist"}
 
 @app.delete("/blocklist/{ip}", status_code=200)
-async def remove_from_blocklist(ip: str, redis: redis.Redis = Depends(get_redis_client)):
+async def remove_from_blocklist(ip: str, redis: redis.Redis = Depends(get_redis_client), current_user: User = Depends(get_current_active_user)):
     removed_count = await redis.srem(BLOCKLIST_REDIS_KEY, ip)
     if removed_count == 0:
         raise HTTPException(status_code=404, detail="IP not found in blocklist")
@@ -361,7 +440,7 @@ async def remove_from_blocklist(ip: str, redis: redis.Redis = Depends(get_redis_
     return {"status": "IP removed from blocklist"}
 
 @app.post("/config/webhook", status_code=200)
-async def update_webhook_config(config: WebhookConfig, producer: JsonProducer = Depends(get_json_kafka_producer)):
+async def update_webhook_config(config: WebhookConfig, producer: JsonProducer = Depends(get_json_kafka_producer), current_user: User = Depends(get_current_active_user)):
     """Updates the webhook config, saves it to Redis, and notifies the alerter via Kafka."""
     try:
         # Save to Redis
@@ -375,7 +454,7 @@ async def update_webhook_config(config: WebhookConfig, producer: JsonProducer = 
         raise HTTPException(status_code=500, detail=f"Failed to send webhook config update: {e}")
 
 @app.get("/config/webhook", response_model=Optional[WebhookConfig])
-async def get_webhook_config(redis: redis.Redis = Depends(get_redis_client)):
+async def get_webhook_config(redis: redis.Redis = Depends(get_redis_client), current_user: User = Depends(get_current_active_user)):
     """Retrieves the current webhook config from Redis."""
     config = await redis.hgetall(WEBHOOK_CONFIG_REDIS_KEY)
     if not config:
@@ -383,7 +462,7 @@ async def get_webhook_config(redis: redis.Redis = Depends(get_redis_client)):
     return config
 
 @app.get("/stats", response_model=StatsResponse)
-async def get_stats(es: AsyncElasticsearch = Depends(get_es_client)):
+async def get_stats(es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     try:
         # Calculate the Unix timestamp for 24 hours ago
         timestamp_24h_ago = int(time.time()) - (24 * 60 * 60)
@@ -422,7 +501,7 @@ async def get_stats(es: AsyncElasticsearch = Depends(get_es_client)):
         raise HTTPException(status_code=500, detail=f"Failed to get stats: {e}")
 
 @app.get("/status", response_model=StatusResponse)
-async def get_system_status(es: AsyncElasticsearch = Depends(get_es_client)):
+async def get_system_status(es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     try:
         query = {
             "bool": { "must": [ { "term": { "status.keyword": "new" } }, { "term": { "is_anomaly": True } } ] }
@@ -435,7 +514,7 @@ async def get_system_status(es: AsyncElasticsearch = Depends(get_es_client)):
         raise HTTPException(status_code=500, detail=f"Failed to get system status: {e}")
 
 @app.get("/reports/incidents")
-async def generate_incident_report(es: AsyncElasticsearch = Depends(get_es_client)):
+async def generate_incident_report(es: AsyncElasticsearch = Depends(get_es_client), current_user: User = Depends(get_current_active_user)):
     """
     Generates a PDF report of all 'new' incidents.
     """

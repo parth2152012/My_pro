@@ -1,6 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export const FreeTrialPage: React.FC = () => {
+  const [isTrialStarted, setIsTrialStarted] = useState(false);
+
+  const handleStartTrial = () => {
+    // Redirect to the AI-ML SOC dashboard
+    window.location.href = 'http://localhost:3000';
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-200 via-purple-900/20 to-base-200 text-base-content relative overflow-hidden">
       {/* Purple Blob Background */}
@@ -18,7 +25,10 @@ export const FreeTrialPage: React.FC = () => {
               Try COMOS for 14 days with full access to basic features
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn comos-bg px-8 py-3 rounded-xl text-white hover:scale-105 transition-transform">
+              <button
+                onClick={handleStartTrial}
+                className="btn comos-bg px-8 py-3 rounded-xl text-white hover:scale-105 transition-transform"
+              >
                 Start Free Trial
               </button>
             </div>
@@ -65,7 +75,10 @@ export const FreeTrialPage: React.FC = () => {
               Sign up now and secure your app in minutes
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="btn comos-bg px-8 py-3 rounded-xl text-white hover:scale-105 transition-transform">
+              <button
+                onClick={handleStartTrial}
+                className="btn comos-bg px-8 py-3 rounded-xl text-white hover:scale-105 transition-transform"
+              >
                 Start Your Free Trial
               </button>
             </div>

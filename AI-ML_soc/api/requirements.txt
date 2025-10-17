@@ -9,3 +9,10 @@ jinja2
 matplotlib
 slowapi
 confluent-kafka[avro]
+python-jose[cryptography]
+passlib[bcrypt]==1.7.4
+websockets
+pydantic[email]
+pytest
+pytest-asyncio
+python-multipart
