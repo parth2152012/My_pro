@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
-
 export const FreeTrialPage: React.FC = () => {
-  const [isTrialStarted, setIsTrialStarted] = useState(false);
-
   const handleStartTrial = () => {
     // Redirect to the AI-ML SOC dashboard
     window.location.href = 'http://localhost:3000';
   };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-base-200 via-purple-900/20 to-base-200 text-base-content relative overflow-hidden">
       {/* Purple Blob Background */}
       <div className="absolute top-20 left-10 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
       <div className="absolute bottom-20 right-10 w-80 h-80 bg-purple-800 rounded-full mix-blend-multiply filter blur-xl opacity-15 animate-pulse delay-1000"></div>
-
       <div className="relative z-10">
         {/* Hero Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
@@ -34,7 +29,6 @@ export const FreeTrialPage: React.FC = () => {
             </div>
           </div>
         </section>
-
         {/* Plan Details */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
@@ -55,16 +49,15 @@ export const FreeTrialPage: React.FC = () => {
               <div className="mt-8">
                 <h3 className="text-xl font-semibold mb-4 comos-color">Features</h3>
                 <ul className="space-y-2 text-gray-300">
-                  <li>• Log monitoring</li>
-                  <li>• AI alerts</li>
-                  <li>• Slack/Discord notifications</li>
-                  <li>• Basic dashboard</li>
+                  • Log monitoring
+                  • AI alerts
+                  • Slack/Discord notifications
+                  • Basic dashboard
                 </ul>
               </div>
             </div>
           </div>
         </section>
-
         {/* CTA Section */}
         <section className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
