@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 export const FreeTrialPage: React.FC = () => {
   const handleStartTrial = () => {
     // Redirect to the AI-ML SOC dashboard
