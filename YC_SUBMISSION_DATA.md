@@ -14,7 +14,7 @@
 - Role: CEO / Founder
 - Age: 20 years old
 - Location: Thailand
-- Background: Strategic leadership and business development
+- Background: Strategic leadership, business development and cyber security
 
 **Hussian Shabir**
 - Role: Co-founder
